@@ -155,9 +155,9 @@ async def stream_message(
     )
     await auto_title_session(chat_id, user_id, body.content)
 
-    # Build history
+    # Build history — include ALL messages (user message already saved above)
     history = await chat_service.get_messages(user, chat_id)
-    messages = [{"role": m["role"], "content": m["content"]} for m in history[:-1]]  # exclude just-saved
+    messages = [{"role": m["role"], "content": m["content"]} for m in history]
 
     async def event_generator() -> AsyncGenerator[str, None]:
         full_response = ""

@@ -7,6 +7,8 @@ Supports:
 This version is LangSmith-traceable because model calls go through LangChain.
 """
 from __future__ import annotations
+from langchain_core.prompts.chat import MessagesPlaceholder
+from langchain_core.prompts.chat import ChatPromptTemplate
 
 import logging
 from typing import AsyncGenerator, List
@@ -36,7 +38,7 @@ def _get_langchain_model(model: str | None = None):
         return ChatOllama(
             model=selected_model,
             base_url=base_url,
-            temperature=0.7,
+            temperature=0,
         )
 
     if provider in {"lmstudio", "vllm", "cloud"}:
@@ -48,7 +50,7 @@ def _get_langchain_model(model: str | None = None):
             model=selected_model,
             base_url=openai_base,
             api_key="local-not-required",
-            temperature=0.7,
+            temperature=0,
         )
 
     raise ValueError(f"Unsupported LLM provider: {provider}")
@@ -126,6 +128,17 @@ async def check_llm_health() -> dict:
             "error": str(exc),
         }
 
+SYSTEM_PROMPT = """
+You are Iqra GPT, an intelligent, helpful, and trustworthy AI assistant.
+Respond in a clear, concise, and user-friendly manner.
+Deliver accurate information, practical guidance, and well-structured explanations.
+Adapt your tone and level of detail based on the user’s question.
+For complex topics, simplify the explanation and provide step-by-step support when needed.
+If information is uncertain, incomplete, or unavailable, state that honestly rather than guessing.
+Your responses should always be useful, respectful, and easy to understand.
+"""
+
+chat_prompt = ChatPromptTemplate.from_messages([('system',SYSTEM_PROMPT),MessagesPlaceholder(variable_name="messages")])
 
 async def stream_chat(
     messages: List[dict],
@@ -136,9 +149,9 @@ async def stream_chat(
     """
     chat_model = _get_langchain_model(model)
     normalized_messages = _normalize_messages(messages)
-
+    chain = chat_prompt | chat_model
     try:
-        async for chunk in chat_model.astream(normalized_messages):
+        async for chunk in chain.astream(normalized_messages):
             content = getattr(chunk, "content", "")
 
             if isinstance(content, str):
@@ -163,9 +176,10 @@ async def complete_chat(messages: List[dict], model: str | None = None) -> str:
     """
     chat_model = _get_langchain_model(model)
     normalized_messages = _normalize_messages(messages)
+    chain = chat_prompt | chat_model
 
     try:
-        result = await chat_model.ainvoke(normalized_messages)
+        result = await chain.ainvoke(normalized_messages)
         content = getattr(result, "content", "")
 
         if isinstance(content, str):

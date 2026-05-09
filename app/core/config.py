@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # LLM
     llm_provider: str = "ollama"
     llm_base_url: str = "http://localhost:11434"
-    default_model: str = "llama3"
+    default_model: str = "gemma4:e4b"
 
     # LangSmith
     langchain_tracing_v2: str = "false"

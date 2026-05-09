@@ -145,10 +145,11 @@ async def google_sso(body: GoogleAuthRequest) -> AuthResponse:
 
     try:
         id_info = google_id_token.verify_oauth2_token(
-            body.credential,
+            body.idToken,
             google_requests.Request(),
             settings.google_client_id,
         )
+        print('this is id info',id_info,body.idToken)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
